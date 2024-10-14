@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QPushButton, QLabel, QDialog, QHBoxLayout
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QPushButton, QLabel, QDialog, QHBoxLayout, QSizePolicy
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 import sys
@@ -48,27 +48,30 @@ class TextInputApp(QWidget):
         
         self.text_edit = QTextEdit(self)
         self.text_edit.setPlaceholderText("Enter or paste newline delimited list...")
-
+        self.text_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(self.text_edit)
 
-        button_layout = QHBoxLayout()
+        self.toggle_button = QPushButton('"', self.text_edit)
+        self.toggle_button.setStyleSheet("background-color: #4d8a58; color: white; padding-top: 5px;")  # Green color for double quotes
+        self.toggle_button.setFixedSize(30, 30)
+        self.toggle_button.setFont(QFont('Helvetica', 16, QFont.Bold))
 
+        # Set the quote button's position after the layout is set
+        self.toggle_button.setToolTip("Currently using double quotes")
+        self.toggle_button.clicked.connect(self.toggle_quotes)
+
+        # Set initial position of the button (10px from the bottom-right corner of QTextEdit)
+        self.update_quote_button_position()
+
+        # Move button layout here, no need for layout.addStretch()
+        button_layout = QHBoxLayout()
+        
         self.submit_button = QPushButton("Submit", self)
         button_layout.addWidget(self.submit_button)
 
-        # Add toggle button for quotes, default to double quotes
-        self.toggle_button = QPushButton('"', self)
-        self.toggle_button.setStyleSheet("background-color: #4d8a58; color: white;")  # Green color for double quotes
-        self.toggle_button.setFixedSize(30, 30)
-        self.toggle_button.setFont(QFont('Helvetica', 16, QFont.Bold))
-        button_layout.addWidget(self.toggle_button)
-
-        self.toggle_button.setToolTip("Currently using double quotes")
-
-        self.toggle_button.clicked.connect(self.toggle_quotes)
-
         layout.addLayout(button_layout)
 
+        # Move submit_button connected to show_output_window
         self.submit_button.clicked.connect(self.show_output_window)
 
         self.use_single_quotes = False  # Default to double quotes
@@ -81,14 +84,13 @@ class TextInputApp(QWidget):
         # Change the button text, color, and tooltip based on the current state
         if self.use_single_quotes:
             self.toggle_button.setText("'")
-            self.toggle_button.setStyleSheet("background-color: #4092a8; color: white;")  # Blue color for single quotes
+            self.toggle_button.setStyleSheet("background-color: #4092a8; color: white; padding-top: 5px;")  # Blue color for single quotes
             self.toggle_button.setToolTip("Currently using single quotes")
         else:
             self.toggle_button.setText('"')
-            self.toggle_button.setStyleSheet("background-color: #4d8a58; color: white;")  # Green color for double quotes
+            self.toggle_button.setStyleSheet("background-color: #4d8a58; color: white; padding-top: 5px;")  # Green color for double quotes
             self.toggle_button.setToolTip("Currently using double quotes")
             
-
     def show_output_window(self):
         # Get the content from the text edit
         text_content = self.text_edit.toPlainText()
@@ -104,6 +106,18 @@ class TextInputApp(QWidget):
             self.show_output_window()
         elif event.key() == Qt.Key_Return and (event.modifiers() & Qt.ControlModifier):  # Ctrl+Enter on Windows/Linux
             self.show_output_window()
+
+    def resizeEvent(self, event):
+        # Ensure the quote button remains in the correct position when the window is resized
+        self.update_quote_button_position()
+        super().resizeEvent(event)
+        
+    def update_quote_button_position(self):
+        # Calculate the position of the quote button to be 10px from the bottom-right of QTextEdit
+        text_edit_rect = self.text_edit.rect()
+        self.toggle_button.move(text_edit_rect.right() - self.toggle_button.width() - 10, 
+                                text_edit_rect.bottom() - self.toggle_button.height() - 10)
+
 
 class OutputWindow(QDialog):
     def __init__(self, line_count, processed_text, use_single_quotes):
@@ -133,6 +147,7 @@ class OutputWindow(QDialog):
         clipboard = QApplication.clipboard()
         clipboard.setText(self.text_display.toPlainText())
         self.accept()  # Close the window after copying
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
