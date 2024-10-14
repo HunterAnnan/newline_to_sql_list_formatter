@@ -1,6 +1,3 @@
-import pyperclip
-import PySide6
-
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QPushButton, QLabel, QDialog
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
