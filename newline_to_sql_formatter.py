@@ -1,14 +1,15 @@
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QPushButton, QLabel, QDialog
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QPushButton, QLabel, QDialog, QHBoxLayout
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 import sys
 
-def spreadsheet_to_sql_list(raw_lines):
+def spreadsheet_to_sql_list(raw_lines, use_single_quotes=False):
     lines = [line for line in raw_lines.strip().splitlines() if line.strip()]
     
     formatted_lines = ""
+    quote_char = "'" if use_single_quotes else '"'
     for line in lines:
-        formatted_lines += f'"{line}",\n'
+        formatted_lines += f'{quote_char}{line}{quote_char},\n'
     if formatted_lines:
         formatted_lines = formatted_lines[:-2]
 
@@ -49,21 +50,52 @@ class TextInputApp(QWidget):
         self.text_edit.setPlaceholderText("Enter or paste newline delimited list...")
 
         layout.addWidget(self.text_edit)
-        
+
+        button_layout = QHBoxLayout()
+
         self.submit_button = QPushButton("Submit", self)
-        layout.addWidget(self.submit_button)
-        
+        button_layout.addWidget(self.submit_button)
+
+        # Add toggle button for quotes, default to double quotes
+        self.toggle_button = QPushButton('"', self)
+        self.toggle_button.setStyleSheet("background-color: #4d8a58; color: white;")  # Green color for double quotes
+        self.toggle_button.setFixedSize(30, 30)
+        self.toggle_button.setFont(QFont('Helvetica', 16, QFont.Bold))
+        button_layout.addWidget(self.toggle_button)
+
+        self.toggle_button.setToolTip("Currently using double quotes")
+
+        self.toggle_button.clicked.connect(self.toggle_quotes)
+
+        layout.addLayout(button_layout)
+
         self.submit_button.clicked.connect(self.show_output_window)
 
+        self.use_single_quotes = False  # Default to double quotes
+
         self.setLayout(layout)
+
+    def toggle_quotes(self):
+        self.use_single_quotes = not self.use_single_quotes
+        
+        # Change the button text, color, and tooltip based on the current state
+        if self.use_single_quotes:
+            self.toggle_button.setText("'")
+            self.toggle_button.setStyleSheet("background-color: #4092a8; color: white;")  # Blue color for single quotes
+            self.toggle_button.setToolTip("Currently using single quotes")
+        else:
+            self.toggle_button.setText('"')
+            self.toggle_button.setStyleSheet("background-color: #4d8a58; color: white;")  # Green color for double quotes
+            self.toggle_button.setToolTip("Currently using double quotes")
+            
 
     def show_output_window(self):
         # Get the content from the text edit
         text_content = self.text_edit.toPlainText()
 
-        line_count, processed_text = spreadsheet_to_sql_list(text_content)
+        line_count, processed_text = spreadsheet_to_sql_list(text_content, use_single_quotes=self.use_single_quotes)
 
-        self.output_window = OutputWindow(line_count, processed_text)
+        self.output_window = OutputWindow(line_count, processed_text, self.use_single_quotes)
         self.output_window.show()
 
     def keyPressEvent(self, event):
@@ -74,41 +106,33 @@ class TextInputApp(QWidget):
             self.show_output_window()
 
 class OutputWindow(QDialog):
-    def __init__(self, line_count, processed_text):
+    def __init__(self, line_count, processed_text, use_single_quotes):
         super().__init__()
 
-        # Set window properties
         self.setWindowTitle("Output")
         self.setGeometry(200, 250, 280, 400)
 
-        # Create layout
         layout = QVBoxLayout()
 
-        # Create a label to display the line count
         self.line_count_label = QLabel(f"{line_count} lines detected", self)
         layout.addWidget(self.line_count_label)
 
-        # Create a text edit to display the processed text (non-editable)
         self.text_display = QTextEdit(self)
         self.text_display.setText(processed_text)
         self.text_display.setReadOnly(True)  # Make the text non-editable
         layout.addWidget(self.text_display)
         
-        # Add a copy button
         self.copy_button = QPushButton("Copy", self)
         layout.addWidget(self.copy_button)
-        
-        # Connect the copy button to an action
+
         self.copy_button.clicked.connect(self.copy_to_clipboard)
 
-        # Set the layout
         self.setLayout(layout)
 
     def copy_to_clipboard(self):
         clipboard = QApplication.clipboard()
         clipboard.setText(self.text_display.toPlainText())
-
-        self.accept() # Close the window after copying
+        self.accept()  # Close the window after copying
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
