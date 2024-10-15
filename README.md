@@ -2,6 +2,8 @@
 
 GUI accepting a newline delimited list (e.g. from a copied Excel/Google Sheets spreadsheet) and returning a list wrapped in double quotes with separating commas. Output text can be copied to clipboard.
 
+I suggest compiling using e.g. `pyinstaller`.
+
 - Allows swapping between double (default) and single quotes
 - Blank list items will be ignored
 
